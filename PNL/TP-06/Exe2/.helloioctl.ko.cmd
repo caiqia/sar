@@ -1,0 +1,1 @@
+cmd_/users/nfs/Etu4/3605744/Bureau/PNL/TP-06/Exe2/helloioctl.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /users/nfs/Etu4/3605744/Bureau/PNL/TP-06/Exe2/helloioctl.ko /users/nfs/Etu4/3605744/Bureau/PNL/TP-06/Exe2/helloioctl.o /users/nfs/Etu4/3605744/Bureau/PNL/TP-06/Exe2/helloioctl.mod.o

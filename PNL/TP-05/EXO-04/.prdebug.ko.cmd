@@ -1,0 +1,1 @@
+cmd_/users/nfs/Etu4/3605744/Bureau/PNL/TP-05/EXO-04/prdebug.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /users/nfs/Etu4/3605744/Bureau/PNL/TP-05/EXO-04/prdebug.ko /users/nfs/Etu4/3605744/Bureau/PNL/TP-05/EXO-04/prdebug.o /users/nfs/Etu4/3605744/Bureau/PNL/TP-05/EXO-04/prdebug.mod.o
