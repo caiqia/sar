@@ -1,0 +1,20 @@
+#ifndef DEF_CURRENTMENUENUM
+#define DEF_CURRENTMENUENUM
+
+enum CurrentMenu
+{
+    MAIN_MENU,
+        PARAMETERS_MENU,
+            AUDIO_PARAMETERS_MENU,
+            VIDEO_PARAMETERS_MENU,
+            NETWORK_PARAMETERS_MENU,
+                WIFI_CONNECTION_MENU,
+            GAME_PARAMETERS_MENU,
+            INPUT_PARAMETERS_MENU,
+        INFORMATION_MENU,
+            CREDITS_INFORMATION_MENU,
+            SYSTEM_INFORMATION_MENU,
+            HELP_INFORMATION_MENU,
+};
+
+#endif
