@@ -1,0 +1,98 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/fs.h>
+
+#include <linux/syscalls.h>
+#include <linux/string.h>
+#include <linux/mm.h>
+#include <linux/fsnotify.h>
+#include <linux/slab.h>
+#include <linux/init.h>
+#include <linux/hash.h>
+#include <linux/cache.h>
+#include <linux/export.h>
+#include <linux/mount.h>
+#include <linux/file.h>
+#include <asm/uaccess.h>
+#include <linux/security.h>
+#include <linux/seqlock.h>
+#include <linux/swap.h>
+#include <linux/bootmem.h>
+#include <linux/fs_struct.h>
+#include <linux/hardirq.h>
+#include <linux/bit_spinlock.h>
+#include <linux/rculist_bl.h>
+#include <linux/prefetch.h>
+#include <linux/ratelimit.h>
+#include <linux/list_lru.h>
+#include <linux/kasan.h>
+#include <linux/types.h>
+#include <linux/proc_fs.h>
+
+
+MODULE_DESCRIPTION("Module \"weasel\" pour noyau linux");
+MODULE_AUTHOR("Jaime Wahnon et Kevin VU, UPMC");
+MODULE_LICENSE("GPL");
+
+
+static char msg[128];
+static int len = 0;
+static int len_check = 1;
+
+static int simple_proc_open(struct inode *inode, struct  file *file) {
+  return single_open(file, NULL, inode->i_private);
+}
+
+int simple_proc_read(struct file *sp_file,char __user *buf, size_t size, loff_t *offset)
+{
+  strcpy(msg, "I'm a weasel");
+  if (len_check)
+    len_check = 0;
+  else {
+    len_check = 1;
+    return 0;
+  }
+ len = sprintf(buf,"%s\n",msg);
+
+return len;
+}
+
+int simple_proc_write(struct file *sp_file,const char __user *buf, size_t size, loff_t *offset)
+{
+
+  printk(KERN_INFO "proc called write %d %s\n",size, buf);
+len = size;
+copy_from_user(msg,buf,len);
+return len;
+}
+
+static const struct file_operations proc_create_weasel = {
+  .open = simple_proc_open,
+  .read = simple_proc_read,
+  .write = simple_proc_write,
+};
+
+static int __init weasel_init(void)
+{
+  int nb;
+  pr_info("Adresse de la table : %p et taille de la table : %d", dentry_hashtable, 1<<d_hash_shift );
+  struct proc_dir_entry *newparent;
+  
+  newparent = proc_mkdir("weasel", NULL);
+
+  proc_create("whoami", 0, newparent, &proc_create_weasel);
+
+  proc_create("list", 0, newparent, &proc_create_weasel);
+  
+  
+  return 0;
+}
+
+module_init(weasel_init);
+
+static void __exit weasel_exit(void)
+{
+  remove_proc_entry("weasel", NULL);
+	pr_info("Byebye\n");
+}
+module_exit(weasel_exit);

@@ -1,0 +1,28 @@
+Fichier README
+
+
+Projet réalisé par :
+Jaime WahnonAbitbol 3303881
+Kévin Vu 3202944
+
+Exemple de trace :
+
+Pour la commande meminfo on obtient :
+Saisir commande
+meminfo
+
+MenTotal:  2093916
+MemFree: 1997352
+Buffers: 8704
+HighTotal: 0
+HighFree: 0
+SharedMemory: 8798
+MemUnit: 4096
+SwapTotal: = 0
+SwapFree: 0
+
+Pour la commande kill on obtient :
+Saisir commande
+kill 9 280
+
+[1]+ Killed ./prog

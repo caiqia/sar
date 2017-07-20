@@ -1,0 +1,173 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/fs.h>
+#include <linux/syscalls.h>
+#include <linux/string.h>
+#include <linux/mm.h>
+#include <linux/fsnotify.h>
+#include <linux/slab.h>
+#include <linux/init.h>
+#include <linux/hash.h>
+#include <linux/cache.h>
+#include <linux/export.h>
+#include <linux/mount.h>
+#include <linux/file.h>
+#include <asm/uaccess.h>
+#include <linux/security.h>
+#include <linux/seqlock.h>
+#include <linux/swap.h>
+#include <linux/bootmem.h>
+#include <linux/fs_struct.h>
+#include <linux/hardirq.h>
+#include <linux/bit_spinlock.h>
+#include <linux/rculist_bl.h>
+#include <linux/prefetch.h>
+#include <linux/ratelimit.h>
+#include <linux/list_lru.h>
+#include <linux/kasan.h>
+#include <linux/types.h>
+#include <linux/proc_fs.h>
+#include <linux/spinlock.h>
+#include <linux/linkage.h>
+#include <linux/mmzone.h>
+#include <linux/list.h>
+#include <linux/memcontrol.h>
+#include <linux/sched.h>
+#include <linux/node.h>
+#include <linux/atomic.h>
+#include <linux/types.h>
+
+#include "mod.h"
+
+
+MODULE_DESCRIPTION("Module \"mod\" pour noyau linux");
+MODULE_AUTHOR("Jaime Wahnon, Kevin VU et , UPMC");
+MODULE_LICENSE("GPL");
+
+struct workqueue_struct * queue;
+
+long ioctl_funcs(struct file *filp,unsigned long cmd, unsigned long arg)
+{
+  int ret=0;
+  
+  switch(cmd) {
+    
+  case MODINFO: 
+	  pr_info("nom %s \n",(char*)arg);
+	  ret = modinfo((char*)arg);
+	 break;
+	case LIST: 
+		pr_info("utilisateur fourni %s",(char*)arg);
+	 break;
+	case FG: 
+		pr_info("utilisateur fourni %s",(char*)arg);
+	 break;
+	case KILL:
+	  pr_info("utilisateur fourni %s",(char*)arg);
+		char* paramkill = kmalloc(sizeof(char)*100,0);
+		strcpy(paramkill,(char *)arg);
+		char* arg1kill = strsep(&paramkill, " ");
+		char* arg2kill = strsep(&paramkill, " ");
+		pr_info("mot : %s\n", arg1kill);
+		pr_info("mot2 : %s\n", arg2kill);
+		long int sig, pid;
+		kstrtol(arg1kill,0,&sig);
+		kstrtol(arg2kill,0,&pid);
+		
+		ret = killmod(sig,pid);
+		kfree(paramkill);
+	 break;
+	case WAIT: 
+		pr_info("utilisateur fourni %s",(char*)arg);
+		int taille=0;
+		char* paramwait = kmalloc(sizeof(char)*100,0);
+		strcpy(paramwait,(char *)arg);
+		char* arg1wait = strsep(&paramwait, " ");
+		while(arg1wait!=NULL){
+		  taille++;
+		  arg1wait = strsep(&paramwait, " ");
+		}
+	
+		ret = waitmod(taille,(char*)arg);
+		kfree(paramwait);
+	 break;
+	case MEMINFO: 
+		ret = meminfo((char*)arg);
+	 break;
+	default :
+		ret = -ENOTTY;
+	 } 
+	return ret;
+}
+
+struct file_operations fops = {
+	.unlocked_ioctl = ioctl_funcs,
+};
+
+int waitmod(int taille,char* tab){
+  int tableau[taille];
+  long int pid;
+  int i=0,j;
+  char* arg1 = strsep(&tab, " ");
+  while(arg1!=NULL){
+    kstrtol(arg1,0,&pid);
+    tableau[i]=pid;
+    i++;
+    arg1 = strsep(&tab, " ");
+  }
+
+  /*for(j=0;j<taille;j++){
+    waitpid(find_get_pid(tableau[j]),NULL,WNOHANG);
+    }*/
+  return 0;
+}
+
+int killmod(int signal, int pid){
+  return kill_pid(find_get_pid(pid),signal, 1);
+}
+
+int meminfo(char* buffer){
+	struct sysinfo val1;
+	si_meminfo(&val1);
+	si_swapinfo(&val1);
+	pr_info("MenTotal: = %lu\nMemFree: %lu\nBuffers: %lu\nHighTotal: %lu\nHighFree: %lu\nSharedMemory: %lu\nMemUnit: %d\n",val1.totalram*val1.mem_unit/1000,val1.freeram*val1.mem_unit/1000,val1.bufferram*val1.mem_unit/1000,val1.totalhigh*val1.mem_unit/1000,val1.freehigh*val1.mem_unit/1000,(val1.sharedram*val1.mem_unit)/1000,val1.mem_unit);
+	pr_info("SwapTotal: = %lu\nSwapFree: %lu\n",val1.totalswap*val1.mem_unit/1000,val1.freeswap*val1.mem_unit/1000);
+	sprintf(buffer,"MenTotal: = %lu\nMemFree: %lu\nBuffers: %lu\nHighTotal: %lu\nHighFree: %lu\nSharedMemory: %lu\nMemUnit: %d\n,SwapTotal: = %lu\nSwapFree: %lu\n",val1.totalram*val1.mem_unit/1000,val1.freeram*val1.mem_unit/1000,val1.bufferram*val1.mem_unit/1000,val1.totalhigh*val1.mem_unit/1000,val1.freehigh*val1.mem_unit/1000,(val1.sharedram*val1.mem_unit)/1000,val1.mem_unit,val1.totalswap*val1.mem_unit/1000,val1.freeswap*val1.mem_unit/1000);
+	copy_to_user(buffer,buffer,strlen(buffer));
+	return 0;
+}
+
+/* Affichage des resultats de modinfo dans l'espace utilisateur grâce à copy_to_user 
+Ce qui doit être fait : Parametres + adresse, envoyer tous les resultats à l'utilisateur.
+
+Ce qui a été fait : Version + nom.
+Comment : utilisation de la struct module (si on recoit "(null)" dans version c'est que pas de version dans le module
+*/
+int modinfo(char * filename)
+{
+  struct module *m;
+
+  m = find_module(filename);
+  pr_info("Nom du module : %s\n", filename);
+  pr_info("Version du module : %s\n", m->version);
+
+  pr_info("Test : %s\n", m->args);
+  
+  return 0;
+}
+
+static int __init mod_init(void)
+{
+  pr_info("Chargement");
+  register_chrdev(0,"mod", &fops);
+  return 0;
+}
+
+module_init(mod_init);
+
+static void __exit mod_exit(void)
+{
+  pr_info("Déchargement\n");
+  unregister_chrdev(0, "mod");
+}
+module_exit(mod_exit);

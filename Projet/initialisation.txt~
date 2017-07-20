@@ -1,0 +1,11 @@
+Quand on reprend le projet, il faut :
+
+Remettre le noyau dans la session :
+
+tar -xvJf /usr/data/sopena/pnl/linux-4.2.3.tar.xz -C /tmp/
+cp /usr/data/sopena/pnl/linux-config-pnl /tmp/linux-4.2.3/.config
+
+Copier pnl-tp.img dans le /tmp
+
+make -j 8 dans le dossier linux
+

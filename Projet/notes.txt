@@ -1,0 +1,11 @@
+on a fait : kill et meminfo
+
+ce qu'on doit faire :
+wait
+modinfo
+renvoyer les codes d'erreur à l'utilisateur
+mettre en place les identifiants pour chaque commande (liste)
+
+faire les asynchrones (workqueues, waitqueues(pour les synchrones)
+fg
+list
